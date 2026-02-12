@@ -1,8 +1,8 @@
-
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
+const Contact = require('./models/Contact');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 
@@ -13,42 +13,36 @@ app.use(express.json());
 // Serve static files from the current directory
 app.use(express.static(path.join(__dirname)));
 
-// File to store contacts
-const CONTACTS_FILE = path.join(__dirname, 'contacts.json');
-
-// Helper to ensure contacts file exists
-if (!fs.existsSync(CONTACTS_FILE)) {
-    fs.writeFileSync(CONTACTS_FILE, '[]', 'utf8');
+// Connect to MongoDB
+// Use the environment variable for the URI
+// In Render, you must set MONGO_URI in the "Environment Variables" section of your dashboard.
+if (!process.env.MONGO_URI) {
+    console.error("ERROR: MONGO_URI is not defined. Please check your .env file or Render environment variables.");
 }
+
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('MongoDB Connected'))
+    .catch((err) => {
+        console.error('MongoDB Connection Error:', err);
+        // On local machine with bad network, this might fail, but it should work on Render
+    });
 
 // Routes
 app.post('/api/contact', async (req, res) => {
     try {
         const { name, email, message } = req.body;
 
-        // Create new contact object
-        const newContact = {
-            id: Date.now().toString(),
+        const newContact = new Contact({
             name,
             email,
             message,
-            date: new Date().toISOString()
-        };
+        });
 
-        // Read existing contacts
-        const data = fs.readFileSync(CONTACTS_FILE, 'utf8');
-        const contacts = JSON.parse(data);
+        await newContact.save();
 
-        // Add new contact
-        contacts.push(newContact);
-
-        // Save back to file
-        fs.writeFileSync(CONTACTS_FILE, JSON.stringify(contacts, null, 2), 'utf8');
-
-        console.log('New contact saved locally:', newContact);
-        res.status(201).json({ message: 'Message sent successfully (Saved Locally)' });
+        res.status(201).json({ message: 'Message sent successfully' });
     } catch (error) {
-        console.error('Error saving contact:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 });
@@ -62,5 +56,4 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-    console.log(`Saving contacts to: ${CONTACTS_FILE}`);
 });
