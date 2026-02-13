@@ -23,10 +23,15 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 // Connect to MongoDB
-// Use the environment variable for the URI
-// In Render, you must set MONGO_URI in the "Environment Variables" section of your dashboard.
 if (!process.env.MONGO_URI) {
-    console.error("ERROR: MONGO_URI is not defined. Please check your .env file or Render environment variables.");
+    console.error("ERROR: MONGO_URI is not defined. Please check Render environment variables.");
+} else {
+    const uri = process.env.MONGO_URI;
+    console.log(`MONGO_URI detected (length: ${uri.length})`);
+    // Check if it's truncated or looks like the error "123"
+    if (uri.includes('123') && !uri.includes('@')) {
+        console.warn("WARNING: MONGO_URI contains '123' but no '@' symbol. It might be truncated!");
+    }
 }
 
 mongoose.connect(process.env.MONGO_URI)
