@@ -2,6 +2,9 @@
 // Fix DNS resolution issues by using Cloudflare DNS
 const dns = require('dns');
 dns.setServers(['1.1.1.1', '1.0.0.1']); // Cloudflare DNS
+if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+}
 
 require('dotenv').config();
 const express = require('express');
